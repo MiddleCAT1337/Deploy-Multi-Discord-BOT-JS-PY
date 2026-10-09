@@ -9,6 +9,7 @@ restart bot=<id>
 remove bot=<id>
 set bot=<id> date=DD/MM/YYYY
 addday bot=<id> day=<days>
+adddayall day=<days>
 debug bot=<id>
 debug bot=<id> lines=<n>
 status
@@ -25,6 +26,7 @@ Examples:
   remove bot=1
   set bot=1 date=15/11/2026
   addday bot=1 day=30
+  adddayall day=1
   debug bot=1
   debug bot=1 lines=80
 `.trim();

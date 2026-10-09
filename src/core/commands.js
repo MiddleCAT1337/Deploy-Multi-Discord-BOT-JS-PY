@@ -6,6 +6,7 @@ import {
   loadRegistry,
   persist,
   removeBotEntry,
+  listBotsSorted,
 } from "./registry.js";
 import {
   computeAddDayExpiry,
@@ -159,6 +160,29 @@ export async function executeCommand(ctx, cmd) {
         : `${remainingText(bot.expiryDate)} left`;
       return {
         message: ok(`bot=${cmd.bot} ${old} → ${neu} (${rem})`),
+      };
+    }
+    case "adddayall": {
+      if (!Number.isInteger(cmd.day) || cmd.day < 1) {
+        return { message: err("day must be a positive integer") };
+      }
+      const bots = listBotsSorted(ctx.state);
+      if (bots.length === 0) {
+        return { message: err("no bots in registry") };
+      }
+      const lines = [];
+      for (const bot of bots) {
+        const old = formatDisplayDate(expiryFromStorage(bot.expiryDate));
+        bot.expiryDate = computeAddDayExpiry(bot.expiryDate, cmd.day);
+        syncExpiredStatus(bot);
+        const neu = formatDisplayDate(expiryFromStorage(bot.expiryDate));
+        lines.push(`  bot=${bot.id} ${old} → ${neu}`);
+      }
+      persist(ctx.state);
+      return {
+        message: ok(
+          `adddayall day=${cmd.day} (${bots.length} bot(s))\n${lines.join("\n")}`,
+        ),
       };
     }
     case "unknown":

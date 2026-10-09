@@ -55,6 +55,11 @@ export function parseCommand(line) {
         bot: kv.bot != null ? Number(kv.bot) : NaN,
         day: kv.day != null ? Number(kv.day) : NaN,
       };
+    case "adddayall":
+      return {
+        type: "adddayall",
+        day: kv.day != null ? Number(kv.day) : NaN,
+      };
     case "debug":
       return {
         type: "debug",

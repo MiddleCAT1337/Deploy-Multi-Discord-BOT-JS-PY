@@ -142,7 +142,10 @@ remove bot=1
 ```text
 set bot=1 date=15/11/2026
 addday bot=1 day=30
+adddayall day=1
 ```
+
+- `adddayall` — บวกวันหมดให้**ทุกตัว**ใน registry (กติกาเดียวกับ `addday` ต่อบอท)
 
 (`date` = DD/MM/YYYY)
 
@@ -201,6 +204,10 @@ DeployBot
 ## ประวัติการแก้ไข (Changelog)
 
 อิงเวอร์ชันใน `package.json` และการพัฒนาล่าสุดของโปรเจกต (README สะท้อนฟีเจอร์ปัจจุบัน)
+
+### 1.1.1 — 2026-10-10
+
+- **เพิ่ม:** `adddayall day=<n>` บวกวันหมดให้บอททุกตัวใน registry
 
 ### 1.1.0 — 2026-10-10
 
