@@ -77,6 +77,11 @@ export function computeAddDayExpiry(expiryIso, daysToAdd) {
   return expiryToStorage(newExpiry);
 }
 
+export function expiryFromDayCount(days) {
+  const today = todayDateBKK();
+  return expiryToStorage(today.plus({ days }));
+}
+
 export function syncExpiredStatus(bot) {
   if (isExpired(bot.expiryDate)) {
     if (bot.status === "running") return bot.status;

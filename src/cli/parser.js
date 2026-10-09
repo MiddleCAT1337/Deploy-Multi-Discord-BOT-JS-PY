@@ -32,7 +32,7 @@ export function parseCommand(line) {
       return {
         type: "new",
         path: kv.path,
-        date: kv.date,
+        day: kv.day != null ? Number(kv.day) : NaN,
         name: kv.name,
       };
     case "start":

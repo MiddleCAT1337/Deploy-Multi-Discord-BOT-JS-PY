@@ -90,7 +90,7 @@ export function renderDashboard(state) {
   lines.push(chalk.bold(header));
 
   if (bots.length === 0) {
-    lines.push(chalk.dim("  (No bots — use new path=... date=... name=...)"));
+    lines.push(chalk.dim("  (No bots — use new path=... day=... name=...)"));
   } else {
     for (const bot of bots) {
       const exp = formatDisplayDate(expiryFromStorage(bot.expiryDate));

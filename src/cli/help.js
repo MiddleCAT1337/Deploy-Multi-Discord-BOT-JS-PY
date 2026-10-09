@@ -2,7 +2,7 @@ export function getHelpText() {
   return `
 DeployBot — usage
 ────────────────────────────────────────────────────────────────────────
-new path=<folder> date=DD/MM/YYYY name=<owner>
+new path=<folder> day=<days> name=<owner>
 start bot=<id>
 stop bot=<id>
 restart bot=<id>
@@ -17,8 +17,8 @@ help
 exit
 
 Examples:
-  new path=D:\\bots\\shop date=09/10/2026 name=Alice
-  new path="C:\\my bots\\v2" date=31/12/2026 name=Bob
+  new path=D:\\bots\\shop day=30 name=Alice
+  new path="C:\\my bots\\v2" day=90 name=Bob
   start bot=1
   stop bot=1
   restart bot=1

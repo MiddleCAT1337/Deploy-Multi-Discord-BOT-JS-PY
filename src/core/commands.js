@@ -13,6 +13,7 @@ import {
   expiryToStorage,
   formatDisplayDate,
   isExpired,
+  expiryFromDayCount,
   parseDateDDMMYYYY,
   remainingText,
   syncExpiredStatus,
@@ -38,24 +39,27 @@ export async function executeCommand(ctx, cmd) {
     case "exit":
       return { exit: true };
     case "new": {
-      if (!cmd.path || !cmd.date || !cmd.name) {
-        return { message: err("new requires path= date= name=") };
+      if (!cmd.path || !cmd.name) {
+        return { message: err("new requires path= day= name=") };
+      }
+      if (!Number.isInteger(cmd.day) || cmd.day < 1) {
+        return { message: err("day must be a positive integer (Bangkok, from today)") };
       }
       const absPath = path.resolve(cmd.path);
       if (!fs.existsSync(absPath)) {
         return { message: err(`path not found: ${absPath}`) };
       }
-      const dt = parseDateDDMMYYYY(cmd.date);
-      if (!dt) {
-        return { message: err("invalid date — use DD/MM/YYYY") };
-      }
+      const expiryIso = expiryFromDayCount(cmd.day);
       const bot = allocateBot(ctx.state, {
         name: cmd.name,
         botPath: absPath,
-        expiryDate: expiryToStorage(dt),
+        expiryDate: expiryIso,
       });
       syncExpiredStatus(bot);
-      const added = ok(`added bot=${bot.id} ${cmd.name} expires ${cmd.date}`);
+      const expiresOn = formatDisplayDate(expiryFromStorage(expiryIso));
+      const added = ok(
+        `added bot=${bot.id} ${cmd.name} day=${cmd.day} expires ${expiresOn} (Bangkok)`,
+      );
       if (isExpired(bot.expiryDate)) {
         return { message: `${added} (expired — not started)` };
       }
