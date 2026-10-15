@@ -6,6 +6,7 @@ import {
 } from "../../core/expiry.js";
 import { listBotsSorted } from "../../core/registry.js";
 import { panelStatusForBot } from "../../core/botStatus.js";
+import { formatBotRam } from "../../core/processMemory.js";
 
 /**
  * @param {import("discord.js").ChatInputCommandInteraction} interaction
@@ -53,6 +54,7 @@ export async function handlePanelCommand(interaction, state, adminId) {
       .addFields(
         { name: "สถานะ", value: st.label, inline: true },
         { name: "PID", value: bot.pid != null ? String(bot.pid) : "-", inline: true },
+        { name: "RAM", value: formatBotRam(bot), inline: true },
         { name: "Runtime", value: bot.runtime ?? "-", inline: true },
         { name: "หมดอายุ", value: exp, inline: true },
         { name: "เหลือ", value: rem, inline: true },

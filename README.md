@@ -34,6 +34,7 @@ DeployBot เป็น CLI สำหรับคุมบอท Discord หล�
 | `src/core/expiry.js` | วันหมด, `day=` สำหรับ new, `addday`, auto-stop |
 | `src/cli/repl.js` | ตารางครั้งแรก, append ผลคำสั่ง, `clear`/`status` รีเฟรช |
 | `src/core/depsInstall.js` | `npm install` / pip ก่อน start บอท |
+| `src/core/processMemory.js` | วัด RAM ของ process tree ต่อบอท (CLI + `/panel`) |
 | `src/discord/` | บอทควบคุม Discord: `/panel`, แจ้งเตือน DM |
 | `config.json` | token บอทควบคุม + `adminId` (แก้ในไฟล์นี้โดยตรง — อย่า commit token จริง) |
 
@@ -41,7 +42,7 @@ DeployBot เป็น CLI สำหรับคุมบอท Discord หล�
 
 - เปิดครั้งแรก → ตารางสถานะเต็มหน้า
 - หลังคำสั่งส่วใหญ่ → ข้อความ `[OK]` / `[ERR]` **ต่อท้าย** ไม่ล้างจอ
-- อยากอัปเดตตาราง → พิมพ์ **`clear`** หรือ **`status`**
+- อยากอัปเดตตาราง (รวมคอลัมน์ **RAM**) → พิมพ์ **`clear`** หรือ **`status`**
 - บอท crash / หมดอายุ → ข้อความสั้นต่อท้าย (ไม่รีเฟรชทั้งหน้า)
 - **`exit`** หรือ Ctrl+C → stop บอททั้งหมดแล้วปิด DeployBot
 
@@ -70,6 +71,7 @@ DeployBot เป็น CLI สำหรับคุมบอท Discord หล�
 - เปิด DeployBot → auto-start บอทใน registry ที่ยังไม่หมดและยังไม่รัน
 - auto `npm install` / pip; Python ขาด module → pip แล้ว retry หนึ่งครั้ง
 - `debug bot=<id>` ดู metadata + tail log
+- คอลัมน์ **RAM** ในตาราง CLI และใน **`/panel`** (Discord) — รวม memory ของ process ลูกทั้ง tree จาก PID ที่ DeployBot เก็บ
 - Windows และ Linux (`platform.js`, npm บน Windows ผ่าน `cmd.exe`)
 
 ---
@@ -128,6 +130,7 @@ npm start
 - **Admin (`adminId` ใน config.json)** — เห็นทุกบอทใน `/panel` และได้รับแจ้งเตือนทุกเหตุการณ์
 - ใช้คำสั่ง **`/panel` ใน DM** กับบอทควบคุมเท่านั้น (ไม่ใช่ในห้องเซิร์ฟเวอร์)
 - สถานะ **Online / Offline / Error** อิง **process** ที่ DeployBot spawn (running / stopped / exit code) — **ไม่**ยืนยันว่าบอท Discord ลูก login gateway สำเร็จ
+- **`/panel`** แสดง **RAM** ต่อบอท (ค่าเดียวกับคอลัมน์ RAM ในตาราง CLI) — อัปเดตเมื่อเรียกคำสั่งใหม่ ไม่ realtime
 
 | เหตุการณ์ | แจ้ง DM |
 | --- | --- |
@@ -137,6 +140,13 @@ npm start
 | หมดอายุ auto-stop | offline |
 
 Token ของบอทลูกยังอยู่ในโฟลเดอร์บอท (`.env` ฯลฯ) — `config.json` เก็บเฉพาะบอทควบคุม DeployBot
+
+### การใช้ RAM
+
+- วัดเมื่อ **รีเฟรชตาราง** (`clear` / `status`) หรือเมื่อกด **`/panel`** ใหม่
+- บอท **ไม่รัน** → แสดง `-`
+- รวม RAM ของ **process tree** จาก PID หลัก (เช่น `npm start` แล้วมี `node` ลูก — นับรวม) ไม่ใช่แค่ process ตัวแรก
+- Windows: Working Set ผ่าน PowerShell · Linux: `VmRSS` จาก `/proc`
 
 ---
 
@@ -192,7 +202,7 @@ exit
 
 | คำสั่ง | ทำอะไร |
 | --- | --- |
-| `clear` / `status` | ล้างจอ + วาดตารางใหม่ (sync PID) |
+| `clear` / `status` | ล้างจอ + วาดตารางใหม่ (sync PID, อัปเดต RAM) |
 | `debug` | path, PID, start command, expiry, tail log |
 | `help` | สรุปคำสั่ง |
 | `exit` | stop บอททั้งหมดแล้วออก |
@@ -218,7 +228,7 @@ DeployBot
     main.js
     nodeFlags.js
     cli          parser, repl, help
-    core         registry, processManager, expiry, display, deps, debug, platform, ...
+    core         registry, processManager, processMemory, expiry, display, ...
     discord      client, /panel, DM notify
 ```
 
@@ -229,13 +239,18 @@ DeployBot
 - ✓ `node -v` ได้ 18+
 - ✓ `new ... day=30` แล้วบอท online ใน Discord (token ถูกในโฟลเดอร์บอท)
 - ✓ ไม่ขึ้น → `debug bot=1` หรือเปิด log ท้ายไฟล์
-- ✓ `clear` แล้ว PID/สถานะตรงความจริง
+- ✓ `clear` แล้ว PID/สถานะ/RAM ตรงความจริง (RAM อัปเดตตอนรีเฟรชเท่านั้น)
 
 ---
 
 ## ประวัติการแก้ไข (Changelog)
 
 อิงเวอร์ชันใน `package.json` และการพัฒนาล่าสุดของโปรเจกต (README สะท้อนฟีเจอร์ปัจจุบัน)
+
+### 1.2.1 — 2026-10-15
+
+- **เพิ่ม:** คอลัมน์ **RAM** ในตาราง CLI และฟิลด์ RAM ใน Discord **`/panel`** (`processMemory.js` — รวม process tree)
+- **เปลี่ยน:** ใช้ [`config.json`](config.json) ไฟล์เดียวที่รากโปรเจกต (ไม่มี `config.example.json`)
 
 ### 1.2.0 — 2026-10-15
 

@@ -9,8 +9,9 @@ import {
   syncExpiredStatus,
 } from "./expiry.js";
 import { listBotsSorted } from "./registry.js";
+import { formatBotRam } from "./processMemory.js";
 
-const TABLE_WIDTH = 84;
+const TABLE_WIDTH = 94;
 const SEP = "─".repeat(TABLE_WIDTH);
 
 export function clearConsole() {
@@ -85,7 +86,9 @@ export function renderDashboard(state) {
     "  " +
     pad("Type", 8) +
     "  " +
-    pad("PID", 8);
+    pad("PID", 8) +
+    "  " +
+    pad("RAM", 9);
 
   lines.push(chalk.bold(header));
 
@@ -109,7 +112,9 @@ export function renderDashboard(state) {
         "  " +
         pad(bot.runtime ?? "-", 8) +
         "  " +
-        pad(bot.pid ?? "-", 8);
+        pad(bot.pid ?? "-", 8) +
+        "  " +
+        pad(formatBotRam(bot), 9);
       lines.push(row);
     }
   }
