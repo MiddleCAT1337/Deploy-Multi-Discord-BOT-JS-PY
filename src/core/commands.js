@@ -20,6 +20,7 @@ import {
   syncExpiredStatus,
 } from "./expiry.js";
 import { startBot, stopBot, restartBot } from "./processManager.js";
+import { emitBotLifecycle } from "./statusEvents.js";
 import { ok, err } from "./display.js";
 import { getHelpText } from "../cli/help.js";
 import { buildDebugReport } from "./debugBot.js";
@@ -55,6 +56,7 @@ export async function executeCommand(ctx, cmd) {
         name: cmd.name,
         botPath: absPath,
         expiryDate: expiryIso,
+        ownerId: cmd.ownerid,
       });
       syncExpiredStatus(bot);
       const expiresOn = formatDisplayDate(expiryFromStorage(expiryIso));
@@ -68,6 +70,7 @@ export async function executeCommand(ctx, cmd) {
         await startBot(ctx.state, bot.id);
         return { message: `${added} — running` };
       } catch (e) {
+        emitBotLifecycle(bot.id, "error", { detail: e.message });
         return { message: `${added}\n${err(`start failed: ${e.message}`)}` };
       }
     }
@@ -89,6 +92,9 @@ export async function executeCommand(ctx, cmd) {
         await restartBot(ctx.state, cmd.bot);
         return { message: ok(`restart bot=${cmd.bot}`) };
       } catch (e) {
+        if (cmd.type === "start") {
+          emitBotLifecycle(cmd.bot, "error", { detail: e.message });
+        }
         return { message: err(e.message) };
       }
     }
@@ -114,20 +120,33 @@ export async function executeCommand(ctx, cmd) {
       if (!Number.isInteger(cmd.bot) || cmd.bot < 1) {
         return { message: err("requires bot=<id>") };
       }
-      if (!cmd.date) {
-        return { message: err("set requires date=DD/MM/YYYY") };
+      if (!cmd.date && cmd.ownerid == null) {
+        return { message: err("set requires date=DD/MM/YYYY and/or ownerid=") };
       }
       const bot = getBotById(ctx.state, cmd.bot);
       if (!bot) return { message: err(`bot=${cmd.bot} not found`) };
-      const dt = parseDateDDMMYYYY(cmd.date);
-      if (!dt) return { message: err("invalid date — use DD/MM/YYYY") };
-      const old = formatDisplayDate(expiryFromStorage(bot.expiryDate));
-      bot.expiryDate = expiryToStorage(dt);
-      syncExpiredStatus(bot);
+      const parts = [];
+      if (cmd.date) {
+        const dt = parseDateDDMMYYYY(cmd.date);
+        if (!dt) return { message: err("invalid date — use DD/MM/YYYY") };
+        const old = formatDisplayDate(expiryFromStorage(bot.expiryDate));
+        bot.expiryDate = expiryToStorage(dt);
+        syncExpiredStatus(bot);
+        const neu = formatDisplayDate(dt);
+        parts.push(`expiry ${old} → ${neu}`);
+      }
+      if (cmd.ownerid != null) {
+        const prev = bot.ownerId ?? "(none)";
+        const next =
+          cmd.ownerid === "" || cmd.ownerid === "none"
+            ? null
+            : String(cmd.ownerid).trim();
+        bot.ownerId = next || null;
+        parts.push(`ownerId ${prev} → ${bot.ownerId ?? "(none)"}`);
+      }
       persist(ctx.state);
-      const neu = formatDisplayDate(dt);
       return {
-        message: ok(`bot=${cmd.bot} expiry ${old} → ${neu}`),
+        message: ok(`bot=${cmd.bot} ${parts.join("; ")}`),
       };
     }
     case "debug": {

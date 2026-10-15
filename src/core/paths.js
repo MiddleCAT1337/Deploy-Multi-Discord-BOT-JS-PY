@@ -6,3 +6,4 @@ export const PROJECT_ROOT = path.resolve(__dirname, "../..");
 export const DATA_DIR = path.join(PROJECT_ROOT, "data");
 export const REGISTRY_PATH = path.join(DATA_DIR, "bots.json");
 export const LOGS_DIR = path.join(DATA_DIR, "logs");
+export const CONFIG_PATH = path.join(PROJECT_ROOT, "config.json");

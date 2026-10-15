@@ -34,6 +34,8 @@ DeployBot เป็น CLI สำหรับคุมบอท Discord หล�
 | `src/core/expiry.js` | วันหมด, `day=` สำหรับ new, `addday`, auto-stop |
 | `src/cli/repl.js` | ตารางครั้งแรก, append ผลคำสั่ง, `clear`/`status` รีเฟรช |
 | `src/core/depsInstall.js` | `npm install` / pip ก่อน start บอท |
+| `src/discord/` | บอทควบคุม Discord: `/panel`, แจ้งเตือน DM |
+| `config.json` | token บอทควบคุม + `adminId` (แก้ในไฟล์นี้โดยตรง — อย่า commit token จริง) |
 
 ### พฤติกรรมหน้าจอ
 
@@ -75,7 +77,7 @@ DeployBot เป็น CLI สำหรับคุมบอท Discord หล�
 ## เทคโนโลยีที่ใช้
 
 - Node.js **18+** (ES module) — ตรวจที่ `index.js`
-- luxon (Asia/Bangkok), chalk, child_process
+- luxon (Asia/Bangkok), chalk, child_process, discord.js (บอทควบคุม — ถ้ามี `config.json`)
 
 ---
 
@@ -85,7 +87,7 @@ DeployBot เป็น CLI สำหรับคุมบอท Discord หล�
 - บอท Node: **npm** | บอท Python: **python3** / **python**
 - โฟลเดอร์บอท: `package.json` + script `start` หรือ `index.js` / `main.py` / `bot.py` / `app.py`
 
-> DeployBot **ไม่**ใส่ Discord token ให้ — แต่ละบอทต้องมี `.env` / config ของตัวเอง ถ้า log ขึ้น `invalid token` ให้แก้ที่โฟลเดอร์บอท ไม่ใช่ที่ DeployBot
+> Token **บอทลูก** ยังอยู่ในโฟลเดอร์บอท (`.env` / config ของลูก) — DeployBot เก็บเฉพาะ token **บอทควบคุม** ใน `config.json` ถ้า log ลูกขึ้น `invalid token` ให้แก้ที่โฟลเดอร์บอท
 
 ---
 
@@ -103,13 +105,38 @@ cd /path/to/DeployBot
 npm install
 ```
 
-3. รัน
+3. (ไม่บังคับ) บอท Discord ควบคุม — แก้ [`config.json`](config.json) ที่รากโปรเจกต:
+
+   - **discordToken** — Bot Token ของบอท DeployBot ตัวควบคุม (สร้างใน [Discord Developer Portal](https://discord.com/developers/applications))
+   - **adminId** — Discord User ID ของคุณ (รับแจ้งเตือนจากบอทลูก**ทุกตัว**)
+
+   ไม่ใส่ token หรือยังเป็นค่า placeholder → ใช้ได้แค่ CLI เหมือนเดิม
+
+4. รัน
 
 ```bash
 npm start
 ```
 
 หรือ `node index.js` (จัดการ `--disable-warning=DEP0190` ให้เมื่อจำเป็น)
+
+---
+
+## Discord ควบคุม (`/panel` + แจ้งเตือน)
+
+- **Owner (`ownerId`)** — ตั้งตอน `new ... ownerid=` หรือ `set bot=<id> ownerid=<user id>` แต่ละบอทลูกผูกกับ Discord user id **หนึ่งคน**
+- **Admin (`adminId` ใน config.json)** — เห็นทุกบอทใน `/panel` และได้รับแจ้งเตือนทุกเหตุการณ์
+- ใช้คำสั่ง **`/panel` ใน DM** กับบอทควบคุมเท่านั้น (ไม่ใช่ในห้องเซิร์ฟเวอร์)
+- สถานะ **Online / Offline / Error** อิง **process** ที่ DeployBot spawn (running / stopped / exit code) — **ไม่**ยืนยันว่าบอท Discord ลูก login gateway สำเร็จ
+
+| เหตุการณ์ | แจ้ง DM |
+| --- | --- |
+| start สำเร็จ | online → owner + admin |
+| stop / exit ปกติ | offline |
+| exit code ≠ 0 / start ล้ม | error |
+| หมดอายุ auto-stop | offline |
+
+Token ของบอทลูกยังอยู่ในโฟลเดอร์บอท (`.env` ฯลฯ) — `config.json` เก็บเฉพาะบอทควบคุม DeployBot
 
 ---
 
@@ -120,13 +147,14 @@ npm start
 ### ลงทะเบียน + รัน
 
 ```text
-new path=/root/bots/my-bot day=30 name=ชื่อลูกค้า
+new path=/root/bots/my-bot day=30 name=ชื่อลูกค้า ownerid=123456789012345678
 new path="C:\my bots\shop" day=90 name=Alice
 ```
 
 - **path** = root โฟลเดอร์บอท
 - **day** = จำนวนวันเต็มจากวันนี้ (Bangkok)
-- **name** = คอลัมน์ Owner
+- **name** = คอลัมน์ Owner (ชื่อแสดงในตาราง CLI)
+- **ownerid** = (ไม่บังคับ) Discord user id ของลูกค้า — ใช้ `/panel` และรับแจ้งเตือน DM
 
 ### ควบคุมบอท
 
@@ -141,6 +169,8 @@ remove bot=1
 
 ```text
 set bot=1 date=15/11/2026
+set bot=1 ownerid=123456789012345678
+set bot=1 ownerid=none
 addday bot=1 day=30
 adddayall day=1
 ```
@@ -180,6 +210,7 @@ exit
 DeployBot
   index.js
   package.json
+  config.json
   data
     bots.json
     logs
@@ -188,6 +219,7 @@ DeployBot
     nodeFlags.js
     cli          parser, repl, help
     core         registry, processManager, expiry, display, deps, debug, platform, ...
+    discord      client, /panel, DM notify
 ```
 
 ---
@@ -204,6 +236,11 @@ DeployBot
 ## ประวัติการแก้ไข (Changelog)
 
 อิงเวอร์ชันใน `package.json` และการพัฒนาล่าสุดของโปรเจกต (README สะท้อนฟีเจอร์ปัจจุบัน)
+
+### 1.2.0 — 2026-10-15
+
+- **เพิ่ม:** บอท Discord ควบคุม (`config.json`: `discordToken`, `adminId`) — `/panel` ใน DM, แจ้ง online/offline/error ไป owner + admin
+- **เพิ่ม:** `ownerId` ต่อบอทใน registry — `new ... ownerid=`, `set bot= ownerid=`
 
 ### 1.1.1 — 2026-10-10
 

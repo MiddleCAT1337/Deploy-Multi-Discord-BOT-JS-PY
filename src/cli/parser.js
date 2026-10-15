@@ -34,6 +34,7 @@ export function parseCommand(line) {
         path: kv.path,
         day: kv.day != null ? Number(kv.day) : NaN,
         name: kv.name,
+        ownerid: kv.ownerid,
       };
     case "start":
       return { type: "start", bot: kv.bot != null ? Number(kv.bot) : NaN };
@@ -48,6 +49,7 @@ export function parseCommand(line) {
         type: "set",
         bot: kv.bot != null ? Number(kv.bot) : NaN,
         date: kv.date,
+        ownerid: kv.ownerid,
       };
     case "addday":
       return {

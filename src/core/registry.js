@@ -39,7 +39,13 @@ export function listBotsSorted(state) {
   return [...state.bots].sort((a, b) => a.id - b.id);
 }
 
-export function allocateBot(state, { name, botPath, expiryDate }) {
+function normalizeOwnerId(value) {
+  if (value == null || value === "") return null;
+  const s = String(value).trim();
+  return s || null;
+}
+
+export function allocateBot(state, { name, botPath, expiryDate, ownerId = null }) {
   const id = state.nextId;
   state.nextId += 1;
   const bot = {
@@ -47,6 +53,7 @@ export function allocateBot(state, { name, botPath, expiryDate }) {
     name,
     path: botPath,
     expiryDate,
+    ownerId: normalizeOwnerId(ownerId),
     runtime: null,
     startCommand: null,
     pid: null,

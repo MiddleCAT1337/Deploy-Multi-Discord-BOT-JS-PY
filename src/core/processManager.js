@@ -5,7 +5,8 @@ import { detectStartCommand, normalizeStartCommand } from "./runtimeDetect.js";
 import { isExpired } from "./expiry.js";
 import { LOGS_DIR } from "./paths.js";
 import { persist } from "./registry.js";
-import { emitBotStatusChange } from "./statusEvents.js";
+import { emitBotLifecycle, emitBotStatusChange } from "./statusEvents.js";
+import { exitEventFromCode } from "./botStatus.js";
 import {
   ensureBotDependencies,
   parseMissingPythonModule,
@@ -130,7 +131,10 @@ export async function startBot(state, id, { notify = true, pipRetried = false } 
   bot.pid = child.pid ?? null;
   bot.status = "running";
   persist(state);
-  if (notify) emitBotStatusChange();
+  if (notify) {
+    emitBotLifecycle(id, "online");
+    emitBotStatusChange();
+  }
 
   child.on("exit", (code) => {
     void (async () => {
@@ -164,6 +168,10 @@ export async function startBot(state, id, { notify = true, pipRetried = false } 
       if (isExpired(b.expiryDate)) b.status = "expired";
       else b.status = "stopped";
       persist(state);
+      const event = exitEventFromCode(code);
+      const detail =
+        code !== 0 && code != null ? `process ออกด้วย code ${code}` : undefined;
+      emitBotLifecycle(id, event, { detail });
       const msg =
         code !== 0 && code != null
           ? `[WARN] bot=${id} exited (code ${code})`
@@ -197,6 +205,9 @@ export async function stopBot(state, id, reason = "manual") {
   else bot.status = "stopped";
   persist(state);
   if (reason !== "controller_exit") {
+    emitBotLifecycle(id, "offline", {
+      detail: reason === "expiry" ? "หมดอายุ / ถูก stop" : undefined,
+    });
     emitBotStatusChange();
   }
   return { bot, reason };
@@ -209,7 +220,7 @@ export async function startAllRegisteredBots(state) {
     if (isExpired(bot.expiryDate)) continue;
     if (bot.pid && isProcessAlive(bot.pid)) continue;
     try {
-      await startBot(state, bot.id, { notify: false });
+      await startBot(state, bot.id, { notify: true });
     } catch (e) {
       failures.push({ id: bot.id, message: e.message });
     }
